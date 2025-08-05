@@ -6,64 +6,28 @@ import (
 )
 
 const (
-	apiURL              = "https://api.github.com/octocat"
-	tokenPath           = "/.config/gh-pradar/"
-	tokenFile           = "config.json"
+	configPath = "/.config/gh-pradar/"
+	configFile = "config.json"
 )
 
 var (
-    quitting bool = false
+	config   appConfig
+	err      error
+	quitting bool = false
 )
 
 func main() {
-	// Set the alternate screen for output aesthetics
-	// enterAltScreen()
+	enterAltScreen()
 
-	// currentToken, err := loadToken()
-	// if err != nil {
-	// 	print(errorText("Error loading token: " + err.Error()))
-	// 	return
-	// }
+	config, err = loadConfig(configPath, configFile)
+	if err != nil {
+		print(errorText("Error loading config: " + err.Error()))
+	}
 
-	// if currentToken == nil {
-	// 	currentToken, err = oauth2Flow()
-	// 	if err != nil {
-	// 		print(errorText("Error in OAuth 2.0 flow: " + err.Error()))
-	// 		return
-	// 	}
-
-	// 	err = saveToken(currentToken)
-	// 	if err != nil {
-	// 		print(errorText("Error saving token: " + err.Error()))
-	// 		return
-	// 	}
-	// } else {
-	// 	var refreshToken, err = oauth2RefreshFlow(currentToken)
-	// 	if err != nil {
-	// 		print(errorText("Error refreshing OAuth 2.0: " + err.Error()))
-	// 		return
-	// 	}
-
-	// 	if refreshToken != nil {
-	// 		err = saveToken(refreshToken)
-	// 		if err != nil {
-	// 			print(errorText("Error saving token (refresh): " + err.Error()))
-	// 			return
-	// 		}
-	// 		currentToken, err = loadToken()
-	// 		if err != nil {
-	// 			print(errorText("Error loading token (refresh): " + err.Error()))
-	// 			return
-	// 		}
-	// 	}
-	// }
-
-	// Load modules
-	// err = startRealtimeLoader("Loading modules...", requestModules)
-	// if err != nil {
-	// 	print(errorText("Error loading modules: " + err.Error()))
-	// 	return
-	// }
+	checkPAT(config)
+	if err != nil {
+		print(errorText("Error PAT not valid: " + err.Error()))
+	}
 
 	if quitting {
 		print(warnText("Exiting module loading..."))

@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"strings"
+
+	"github.com/google/go-github/v74/github"
 )
 
 const (
@@ -24,10 +26,27 @@ func main() {
 		print(errorText("Error loading config: " + err.Error()))
 	}
 
-	checkPAT(config)
-	if err != nil {
-		print(errorText("Error PAT not valid: " + err.Error()))
-	}
+	user, resp := (*github.User)(nil), (*github.Response)(nil)
+	startRealtimeLoader("Loading user data...", func() error {
+		user, resp, err = checkPAT(config)
+		if resp.StatusCode != 200 || err != nil {
+			fmt.Println(errorText("Error loading user details: " + err.Error()))
+		}
+
+		return err
+	})
+
+	// pr, prResp := (*github.User)(nil), (*github.Response)(nil)
+	// startRealtimeLoader("Retrieving PR information...", func() error {
+	// 	user, prResp, err = checkPAT(config)
+	// 	if prResp.StatusCode != 200 || err != nil {
+	// 		fmt.Println(errorText("Error loading user details: " + err.Error()))
+	// 	}
+	//
+	// 	return err
+	// })
+
+	print(*user.Company)
 
 	if quitting {
 		print(warnText("Exiting module loading..."))

@@ -21,32 +21,29 @@ var (
 func main() {
 	enterAltScreen()
 
-	config, err = loadConfig(configPath, configFile)
-	if err != nil {
-		print(errorText("Error loading config: " + err.Error()))
-	}
+	err = loadConfig(configPath, configFile)
 
-	user, resp := (*github.User)(nil), (*github.Response)(nil)
 	startRealtimeLoader("Loading user data...", func() error {
-		user, resp, err = checkPAT(config)
-		if resp.StatusCode != 200 || err != nil {
+		_, err := checkPAT(config)
+		if err != nil {
+			fmt.Println(errorText("Error loading user details: " + err.Error()))
+		}
+		return err
+	})
+
+	var prs []*github.PullRequest
+	startRealtimeLoader("Retrieving PR information...", func() error {
+		prs, err = getPRs(config.ReposityList)
+		if err != nil {
 			fmt.Println(errorText("Error loading user details: " + err.Error()))
 		}
 
 		return err
 	})
 
-	// pr, prResp := (*github.User)(nil), (*github.Response)(nil)
-	// startRealtimeLoader("Retrieving PR information...", func() error {
-	// 	user, prResp, err = checkPAT(config)
-	// 	if prResp.StatusCode != 200 || err != nil {
-	// 		fmt.Println(errorText("Error loading user details: " + err.Error()))
-	// 	}
-	//
-	// 	return err
-	// })
-
-	print(*user.Company)
+	for _, v := range prs {
+		print(*v.Title)
+	}
 
 	if quitting {
 		print(warnText("Exiting module loading..."))

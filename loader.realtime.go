@@ -96,7 +96,6 @@ func startRealtimeLoader(spinnerText string, function func() error) error {
 		function:    function,
 	}
 
-	enterAltScreen()
 	p := tea.NewProgram(spinnerModel)
 
 	finalModel, err := p.Run()

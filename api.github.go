@@ -6,17 +6,19 @@ import (
 	"github.com/google/go-github/v74/github"
 )
 
-func checkPAT(config appConfig) (*github.User, *github.Response, error) {
+func checkPAT(config appConfig) (*github.User, error) {
 	ctx := context.Background()
 
 	client := github.NewClient(nil).WithAuthToken(config.PAT)
 
-	user, resp, err := client.Users.Get(ctx, "")
+	user, _, err := client.Users.Get(ctx, "")
 
-	return user, resp, err
+	return user, err
 }
 
-func getPRs(config appConfig) ([]*github.PullRequest, *github.Response, error) {
+func getPRs(repo_list []string) ([]*github.PullRequest, error) {
+	var prs []*github.PullRequest
+
 	ctx := context.Background()
 
 	client := github.NewClient(nil).WithAuthToken(config.PAT)
@@ -26,7 +28,12 @@ func getPRs(config appConfig) ([]*github.PullRequest, *github.Response, error) {
 		Sort:  "created",
 	}
 
-	prs, resp, err := client.PullRequests.List(ctx, config.Owner, "cinexin-downloader", &prOpts)
+	for _, repo := range repo_list {
+		repo_prs, _, err := client.PullRequests.List(ctx, config.Owner, repo, &prOpts)
+		if err == nil {
+			prs = append(prs, repo_prs...)
+		}
+	}
 
-	return prs, resp, err
+	return prs, err
 }

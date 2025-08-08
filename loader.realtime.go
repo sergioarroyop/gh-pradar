@@ -37,14 +37,14 @@ func waitForActivity(sub chan struct{}) tea.Cmd {
 	}
 }
 
-type model struct {
+type realtimeModel struct {
 	sub       chan struct{} // where we'll receive activity notifications
 	responses int           // how many responses we've received
 	spinner   spinner.Model
 	quitting  bool
 }
 
-func (m model) Init() tea.Cmd {
+func (m realtimeModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.spinner.Tick,
 		listenForActivity(m.sub), // generate activity
@@ -52,7 +52,7 @@ func (m model) Init() tea.Cmd {
 	)
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m realtimeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
 	case tea.KeyMsg:
 		m.quitting = true
@@ -69,7 +69,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
-func (m model) View() string {
+func (m realtimeModel) View() string {
 	s := fmt.Sprintf("\n %s Events received: %d\n\n Press any key to exit\n", m.spinner.View(), m.responses)
 	if m.quitting {
 		s += "\n"
@@ -78,7 +78,7 @@ func (m model) View() string {
 }
 
 func realtimeRender() {
-	p := tea.NewProgram(model{
+	p := tea.NewProgram(realtimeModel{
 		sub:     make(chan struct{}),
 		spinner: spinner.New(),
 	})

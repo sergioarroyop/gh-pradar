@@ -23,16 +23,19 @@ func main() {
 
 	err = loadConfig(configPath, configFile)
 
-	startRealtimeLoader("Loading user data...", func() error {
+	startSpinner("Loading user data...", func() error {
 		_, err := checkPAT(config)
 		if err != nil {
 			fmt.Println(errorText("Error loading user details: " + err.Error()))
 		}
 		return err
 	})
+	if err != nil {
+		return
+	}
 
 	var prs []*github.PullRequest
-	startRealtimeLoader("Retrieving PR information...", func() error {
+	startSpinner("Retrieving PR information...", func() error {
 		prs, err = getPRs(config.ReposityList)
 		if err != nil {
 			fmt.Println(errorText("Error loading user details: " + err.Error()))
@@ -42,7 +45,7 @@ func main() {
 	})
 
 	for _, v := range prs {
-		print(*v.Title)
+		fmt.Println(hyperlinkText(*v.HTMLURL, *v.Title))
 	}
 
 	if quitting {

@@ -5,70 +5,61 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
+	"os"
+	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
-var spinnerTextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Render
+// A message used to indicate that activity has occurred. In the real world (for
+// example, chat) this would contain actual data.
+type responseMsg struct{}
 
-// A message used to indicate that activity has occurred.
-type responseMsg struct {
-	err error
-}
-
-// Listen for activity.
-func listenForActivity(sub chan tea.Msg, function func() error) tea.Cmd {
+// Simulate a process that sends events at an irregular interval in real time.
+// In this case, we'll send events on the channel at a random interval between
+// 100 to 1000 milliseconds. As a command, Bubble Tea will run this
+// asynchronously.
+func listenForActivity(sub chan struct{}) tea.Cmd {
 	return func() tea.Msg {
-		// Execute function
-		err := function()
-		if err != nil {
-			sub <- responseMsg{err: err}
-		} else {
-			sub <- responseMsg{err: nil}
+		for {
+			time.Sleep(time.Millisecond * time.Duration(rand.Int63n(900)+100)) // nolint:gosec
+			sub <- struct{}{}
 		}
-
-		return sub
 	}
 }
 
 // A command that waits for the activity on a channel.
-func waitForActivity(sub chan tea.Msg) tea.Cmd {
+func waitForActivity(sub chan struct{}) tea.Cmd {
 	return func() tea.Msg {
-		return <-sub
+		return responseMsg(<-sub)
 	}
 }
 
-type modelSpinner struct {
-	sub         chan tea.Msg // where we'll receive activity notifications
-	spinner     spinner.Model
-	spinnerText string
-	function    func() error
-	err         error
+type model struct {
+	sub       chan struct{} // where we'll receive activity notifications
+	responses int           // how many responses we've received
+	spinner   spinner.Model
+	quitting  bool
 }
 
-func (m modelSpinner) Init() tea.Cmd {
+func (m model) Init() tea.Cmd {
 	return tea.Batch(
 		m.spinner.Tick,
-		listenForActivity(m.sub, m.function), // generate activity
-		waitForActivity(m.sub),               // wait for activity
+		listenForActivity(m.sub), // generate activity
+		waitForActivity(m.sub),   // wait for activity
 	)
 }
 
-func (m modelSpinner) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "esc", "ctrl+c":
-			quitting = true
-			return m, tea.Quit
-		}
+		m.quitting = true
+		return m, tea.Quit
 	case responseMsg:
-		if msg.err != nil {
-			m.err = msg.err
-		}
-		return m, tea.Quit // exit
+		m.responses++                    // record external activity
+		return m, waitForActivity(m.sub) // wait for next event
 	case spinner.TickMsg:
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
@@ -76,35 +67,24 @@ func (m modelSpinner) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	default:
 		return m, nil
 	}
-	return m, nil
 }
 
-func (m modelSpinner) View() string {
-	s := fmt.Sprintf("\n %s%s%s\n\n", m.spinner.View(), "  ", spinnerTextStyle(m.spinnerText))
-
+func (m model) View() string {
+	s := fmt.Sprintf("\n %s Events received: %d\n\n Press any key to exit\n", m.spinner.View(), m.responses)
+	if m.quitting {
+		s += "\n"
+	}
 	return s
 }
 
-func startRealtimeLoader(spinnerText string, function func() error) error {
-	loadingSpinner := spinner.New()
-	loadingSpinner.Spinner = spinner.Globe
+func realtimeRender() {
+	p := tea.NewProgram(model{
+		sub:     make(chan struct{}),
+		spinner: spinner.New(),
+	})
 
-	spinnerModel := modelSpinner{
-		sub:         make(chan tea.Msg),
-		spinner:     loadingSpinner,
-		spinnerText: spinnerText,
-		function:    function,
+	if _, err := p.Run(); err != nil {
+		fmt.Println("could not start program:", err)
+		os.Exit(1)
 	}
-
-	p := tea.NewProgram(spinnerModel)
-
-	finalModel, err := p.Run()
-	if err != nil {
-		return err
-	}
-	// Check if the final model has an error
-	if finalModel, ok := finalModel.(modelSpinner); ok && finalModel.err != nil {
-		return finalModel.err
-	}
-	return nil
 }

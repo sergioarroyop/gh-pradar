@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"strings"
 
 	"github.com/google/go-github/v74/github"
 )
@@ -29,7 +30,8 @@ func getPRs(repo_list []string) ([]*github.PullRequest, error) {
 	}
 
 	for _, repo := range repo_list {
-		repo_prs, _, err := client.PullRequests.List(ctx, config.Owner, repo, &prOpts)
+		repo := strings.Split(repo, "/")
+		repo_prs, _, err := client.PullRequests.List(ctx, repo[0], repo[1], &prOpts)
 		if err == nil {
 			prs = append(prs, repo_prs...)
 		}

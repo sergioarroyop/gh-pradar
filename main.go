@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/google/go-github/v74/github"
 )
@@ -21,49 +20,45 @@ var (
 func main() {
 	enterAltScreen()
 
-	err = loadConfig(configPath, configFile)
+	loadConfig(configPath, configFile)
 
-	startSpinner("Loading user data...", func() error {
+	errCheckingConfig := startSpinner("Loading user data...", func() error {
 		_, err := checkPAT(config)
 		if err != nil {
 			fmt.Println(errorText("Error loading user details: " + err.Error()))
 		}
 		return err
 	})
-	if err != nil {
+	if errCheckingConfig != nil {
 		return
 	}
 
 	var prs []*github.PullRequest
-	startSpinner("Retrieving PR information...", func() error {
-		prs, err = getPRs(config.ReposityList)
+	errGettingPRs := startSpinner("Retrieving PR information...", func() error {
+		prs, err = getPRs(config.RepositoryList)
 		if err != nil {
-			fmt.Println(errorText("Error loading user details: " + err.Error()))
+			fmt.Println(errorText("Error loading user details: "))
+			return err
 		}
 
-		return err
-	})
+		if len(prs) <= 0 {
+			fmt.Println(errorText("Error loading user details: repository_list is empty"))
+			return fmt.Errorf("error loading user details: repository_list is empty")
+		}
 
-	for _, v := range prs {
-		fmt.Println(hyperlinkText(*v.HTMLURL, *v.Title))
+		return nil
+	})
+	if errGettingPRs != nil {
+		return
 	}
 
+	enterAltScreen()
 	renderTable(prs)
 
 	if quitting {
 		print(warnText("Exiting module loading..."))
 		return
 	}
-}
-
-// Function to check for the `q` key in any input and exit the program
-func checkForQuit(input string) bool {
-	if strings.ToLower(input) == "q" {
-		quitting = true
-		print(warnText("Exiting program..."))
-		return true
-	}
-	return false
 }
 
 // Clear and position the output at the top

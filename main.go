@@ -33,7 +33,7 @@ func main() {
 		return
 	}
 
-	var prs []*github.PullRequest
+	prs := make(map[string][]*github.PullRequest)
 	errGettingPRs := startSpinner("Retrieving PR information...", func() error {
 		prs, err = getPRs(config.RepositoryList)
 		if err != nil {

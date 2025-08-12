@@ -48,23 +48,27 @@ func (m tableModel) View() string {
 	return baseStyle.Render(m.table.View()) + "\n"
 }
 
-func renderTable(prs []*github.PullRequest) {
+func renderTable(prs map[string][]*github.PullRequest) {
 	columns := []table.Column{
-		{Title: "Title", Width: 100},
+		{Title: "Repository", Width: 50},
+		{Title: "Title", Width: 80},
 		{Title: "Status", Width: 50},
 		{Title: "Created At", Width: 50},
 	}
 
 	loc, _ := time.LoadLocation("Europe/Madrid")
 	rows := []table.Row{}
-	for _, v := range prs {
-		createAt := &v.CreatedAt.Time
-		row := table.Row{
-			hyperlinkText(*v.HTMLURL, *v.Title),
-			*v.State,
-			createAt.In(loc).Format("02 Jan 06 15:04"),
+	for repo_name, pr_list := range prs {
+		for _, v := range pr_list {
+			createAt := &v.CreatedAt.Time
+			row := table.Row{
+				repo_name,
+				*v.Title,
+				*v.State,
+				createAt.In(loc).Format("02 Jan 06 15:04"),
+			}
+			rows = append(rows, row)
 		}
-		rows = append(rows, row)
 	}
 
 	t := table.New(

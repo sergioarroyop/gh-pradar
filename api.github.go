@@ -17,8 +17,8 @@ func checkPAT(config appConfig) (*github.User, error) {
 	return user, err
 }
 
-func getPRs(repo_list []string) ([]*github.PullRequest, error) {
-	var prs []*github.PullRequest
+func getPRs(repo_list []string) (map[string][]*github.PullRequest, error) {
+	prs := make(map[string][]*github.PullRequest)
 
 	ctx := context.Background()
 
@@ -33,7 +33,7 @@ func getPRs(repo_list []string) ([]*github.PullRequest, error) {
 		repo := strings.Split(repo, "/")
 		repo_prs, _, err := client.PullRequests.List(ctx, repo[0], repo[1], &prOpts)
 		if err == nil {
-			prs = append(prs, repo_prs...)
+			prs[repo[1]] = repo_prs
 		}
 	}
 

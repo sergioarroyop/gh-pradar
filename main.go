@@ -20,7 +20,29 @@ var (
 func main() {
 	enterAltScreen()
 
-	loadConfig(configPath, configFile)
+	errLoadingConfig := startSpinner("Loading local config...", func() error {
+		err := loadConfig(configPath, configFile)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if errLoadingConfig != nil {
+		return
+	}
+
+	if config.Sound != "" {
+		errInitAudio := startSpinner("Loading audio speaker...", func() error {
+			err := initAudio()
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+		if errInitAudio != nil {
+			return
+		}
+	}
 
 	errCheckingConfig := startSpinner("Loading user data...", func() error {
 		_, err := checkPAT(config)

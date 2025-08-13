@@ -15,17 +15,6 @@ var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
 
-type (
-	tickMsg    struct{}
-	refreshMsg struct {
-		rows []table.Row
-		err  error
-	}
-	tableModel struct {
-		table table.Model
-	}
-)
-
 func (m tableModel) Init() tea.Cmd {
 	return tea.Batch(
 		fetchPRs(),
@@ -43,8 +32,10 @@ func printCmd(msg any) tea.Cmd {
 func (m tableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case refreshMsg:
-		if len(msg.rows) != len(m.table.Rows()) {
-			playSound()
+		if config.Sound != "" {
+			if len(msg.rows) != len(m.table.Rows()) {
+				playAudio()
+			}
 		}
 		m.table.SetRows(msg.rows)
 		return m, nil

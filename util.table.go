@@ -15,24 +15,47 @@ var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
 
-type tableModel struct {
-	table table.Model
+type (
+	tickMsg    struct{}
+	refreshMsg struct {
+		rows []table.Row
+		err  error
+	}
+	tableModel struct {
+		table table.Model
+	}
+)
+
+func (m tableModel) Init() tea.Cmd {
+	return tea.Batch(
+		fetchPRs(),
+		scheduleTick(),
+	)
 }
 
-func (m tableModel) Init() tea.Cmd { return nil }
+func printCmd(msg any) tea.Cmd {
+	return func() tea.Msg {
+		fmt.Print(msg)
+		return nil // o algún mensaje si quieres manejarlo en Update
+	}
+}
 
 func (m tableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
 	switch msg := msg.(type) {
+	case refreshMsg:
+		if len(msg.rows) != len(m.table.Rows()) {
+			playSound()
+		}
+		m.table.SetRows(msg.rows)
+		return m, nil
+	case tickMsg:
+		return m, tea.Batch(
+			fetchPRs(),
+			scheduleTick(),
+		)
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "esc":
-			if m.table.Focused() {
-				m.table.Blur()
-			} else {
-				m.table.Focus()
-			}
-		case "q", "ctrl+c":
+		case "q", "ctrl+c", "esc":
 			return m, tea.Quit
 		case "enter":
 			return m, tea.Batch(
@@ -40,6 +63,7 @@ func (m tableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			)
 		}
 	}
+	var cmd tea.Cmd
 	m.table, cmd = m.table.Update(msg)
 	return m, cmd
 }
@@ -48,7 +72,39 @@ func (m tableModel) View() string {
 	return baseStyle.Render(m.table.View()) + "\n"
 }
 
-func renderTable(prs map[string][]*github.PullRequest) {
+func scheduleTick() tea.Cmd {
+	return tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} })
+}
+
+func fetchPRs() tea.Cmd {
+	return func() tea.Msg {
+		prs, err := getPRs(config.RepositoryList)
+
+		rows := generateRows(prs)
+
+		return refreshMsg{rows, err}
+	}
+}
+
+func generateRows(prs []*github.PullRequest) []table.Row {
+	loc, _ := time.LoadLocation("Europe/Madrid")
+	rows := []table.Row{}
+
+	for _, v := range prs {
+		createAt := &v.CreatedAt.Time
+		row := table.Row{
+			*v.Head.Repo.Name,
+			*v.Title,
+			*v.State,
+			createAt.In(loc).Format("02 Jan 06 15:04"),
+		}
+		rows = append(rows, row)
+	}
+
+	return rows
+}
+
+func renderTable(prs []*github.PullRequest) {
 	columns := []table.Column{
 		{Title: "Repository", Width: 50},
 		{Title: "Title", Width: 80},
@@ -56,20 +112,7 @@ func renderTable(prs map[string][]*github.PullRequest) {
 		{Title: "Created At", Width: 50},
 	}
 
-	loc, _ := time.LoadLocation("Europe/Madrid")
-	rows := []table.Row{}
-	for repo_name, pr_list := range prs {
-		for _, v := range pr_list {
-			createAt := &v.CreatedAt.Time
-			row := table.Row{
-				repo_name,
-				*v.Title,
-				*v.State,
-				createAt.In(loc).Format("02 Jan 06 15:04"),
-			}
-			rows = append(rows, row)
-		}
-	}
+	rows := generateRows(prs)
 
 	t := table.New(
 		table.WithColumns(columns),

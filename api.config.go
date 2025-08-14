@@ -26,7 +26,11 @@ func loadConfig(configPath string, configFile string) error {
 		return err
 	}
 
-	json.Unmarshal(byteValue, &config)
+	err = json.Unmarshal(byteValue, &config)
+	if err != nil {
+		fmt.Println(errorText("Ups, seems like your JSON config file is not well formated...: " + err.Error()))
+		return err
+	}
 
 	return err
 }

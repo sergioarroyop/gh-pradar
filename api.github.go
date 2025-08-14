@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -14,7 +15,9 @@ func checkPAT(config appConfig) (*github.User, error) {
 	client := github.NewClient(nil).WithAuthToken(config.PAT)
 
 	user, _, err := client.Users.Get(ctx, "")
-
+	if err != nil {
+		fmt.Println(errorText("Error loading user details: " + err.Error()))
+	}
 	return user, err
 }
 

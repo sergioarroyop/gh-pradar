@@ -47,7 +47,7 @@ func main() {
 	errCheckingConfig := startSpinner("Loading user data...", func() error {
 		_, err := checkPAT(config)
 		if err != nil {
-			fmt.Println(errorText("Error loading user details: " + err.Error()))
+			return err
 		}
 		return err
 	})

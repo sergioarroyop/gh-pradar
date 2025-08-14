@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"time"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -14,6 +15,14 @@ import (
 var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
+
+func openURL(url string) tea.Cmd {
+	return func() tea.Msg {
+		cmd := exec.Command("xdg-open", url)
+		err := cmd.Start()
+		return openURLErrorMsg{err}
+	}
+}
 
 func (m tableModel) Init() tea.Cmd {
 	return tea.Batch(
@@ -43,7 +52,7 @@ func (m tableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "enter":
 			return m, tea.Batch(
-				tea.Printf("Let's go to %s!", m.table.SelectedRow()[1]),
+				openURL(m.table.SelectedRow()[0]),
 			)
 		}
 	}
@@ -77,6 +86,7 @@ func generateRows(prs []*github.PullRequest) []table.Row {
 	for _, v := range prs {
 		createAt := &v.CreatedAt.Time
 		row := table.Row{
+			*v.HTMLURL,
 			*v.Head.Repo.Name,
 			*v.Title,
 			*v.User.Login,
@@ -93,6 +103,7 @@ func generateRows(prs []*github.PullRequest) []table.Row {
 
 func renderTable(prs []*github.PullRequest) {
 	columns := []table.Column{
+		{Title: "URL", Width: 0},
 		{Title: "Repository", Width: 20},
 		{Title: "Title", Width: 50},
 		{Title: "Created by", Width: 20},

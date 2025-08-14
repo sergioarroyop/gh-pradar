@@ -17,6 +17,10 @@ type doneMsg struct {
 	err error
 }
 
+type openURLErrorMsg struct {
+	err error
+}
+
 type modelSpinner struct {
 	spinner         spinner.Model
 	functionSpinner func() error

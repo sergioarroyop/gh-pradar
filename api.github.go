@@ -43,7 +43,7 @@ func getPRs(repo_list []string) ([]*github.PullRequest, error) {
 	}
 
 	sort.Slice(prs, func(i, j int) bool {
-		return prs[i].GetCreatedAt().After(prs[j].GetCreatedAt().Time)
+		return prs[i].GetCreatedAt().Before(prs[j].GetCreatedAt().Time)
 	})
 
 	return prs, err

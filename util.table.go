@@ -22,13 +22,6 @@ func (m tableModel) Init() tea.Cmd {
 	)
 }
 
-func printCmd(msg any) tea.Cmd {
-	return func() tea.Msg {
-		fmt.Print(msg)
-		return nil // o algún mensaje si quieres manejarlo en Update
-	}
-}
-
 func (m tableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case refreshMsg:
@@ -64,7 +57,7 @@ func (m tableModel) View() string {
 }
 
 func scheduleTick() tea.Cmd {
-	return tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} })
+	return tea.Tick(time.Minute, func(time.Time) tea.Msg { return tickMsg{} })
 }
 
 func fetchPRs() tea.Cmd {
@@ -86,21 +79,25 @@ func generateRows(prs []*github.PullRequest) []table.Row {
 		row := table.Row{
 			*v.Head.Repo.Name,
 			*v.Title,
+			*v.User.Login,
 			*v.State,
 			createAt.In(loc).Format("02 Jan 06 15:04"),
 		}
 		rows = append(rows, row)
 	}
 
+	prs = nil
+
 	return rows
 }
 
 func renderTable(prs []*github.PullRequest) {
 	columns := []table.Column{
-		{Title: "Repository", Width: 50},
-		{Title: "Title", Width: 80},
-		{Title: "Status", Width: 50},
-		{Title: "Created At", Width: 50},
+		{Title: "Repository", Width: 20},
+		{Title: "Title", Width: 50},
+		{Title: "Created by", Width: 20},
+		{Title: "Status", Width: 20},
+		{Title: "Created At", Width: 20},
 	}
 
 	rows := generateRows(prs)

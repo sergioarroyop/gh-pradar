@@ -40,7 +40,7 @@ func initAudio() error {
 		b.Append(streamer)
 		buf = b
 
-		initErr = speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
+		initErr = speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/20))
 	})
 	return nil
 }

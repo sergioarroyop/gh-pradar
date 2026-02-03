@@ -3,6 +3,7 @@
 #
 # Binaries for programs and plugins
 gh-radar
+gh-pradar
 *.exe
 *.exe~
 *.dll

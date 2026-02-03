@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/table"
+	"github.com/evertras/bubble-table/table"
 )
 
 // api.config types
@@ -35,10 +35,21 @@ type modelSpinner struct {
 type (
 	tickMsg    struct{}
 	refreshMsg struct {
-		rows []table.Row
+		rows []prTableRow
 		err  error
 	}
 	tableModel struct {
 		table table.Model
+		rows  []prTableRow
 	}
 )
+
+type prTableRow struct {
+	URL        string
+	Repository string
+	Title      string
+	CreatedBy  string
+	Status     string
+	Draft      bool
+	CreatedAt  string
+}

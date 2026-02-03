@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 	"time"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -15,6 +16,11 @@ import (
 var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
+
+const (
+	urlCol = iota
+	draftCol
+)
 
 func openURL(url string) tea.Cmd {
 	return func() tea.Msg {
@@ -35,7 +41,7 @@ func (m tableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case refreshMsg:
 		if config.Sound != "" {
-			if len(msg.rows) != len(m.table.Rows()) {
+			if shouldPlayAudio(m.table.Rows(), msg.rows) {
 				playAudio()
 			}
 		}
@@ -84,14 +90,14 @@ func generateRows(prs []*github.PullRequest) []table.Row {
 	rows := []table.Row{}
 
 	for _, v := range prs {
-		createAt := &v.CreatedAt.Time
 		row := table.Row{
-			*v.HTMLURL,
-			*v.Head.Repo.Name,
-			*v.Title,
-			*v.User.Login,
-			*v.State,
-			createAt.In(loc).Format("02 Jan 06 15:04"),
+			v.GetHTMLURL(),
+			v.GetHead().GetRepo().GetName(),
+			v.GetTitle(),
+			v.GetUser().GetLogin(),
+			v.GetState(),
+			fmt.Sprintf("%t", v.GetDraft()),
+			v.GetCreatedAt().In(loc).Format("02 Jan 06 15:04"),
 		}
 		rows = append(rows, row)
 	}
@@ -101,6 +107,47 @@ func generateRows(prs []*github.PullRequest) []table.Row {
 	return rows
 }
 
+func shouldPlayAudio(currentRows, incomingRows []table.Row) bool {
+	currentRowsByURL := mapRowsByURL(currentRows)
+	incomingRowsByURL := mapRowsByURL(incomingRows)
+
+	for url, incoming := range incomingRowsByURL {
+		if current, ok := currentRowsByURL[url]; !ok || !slices.Equal(current, incoming) {
+			if !isDraftRow(incoming) {
+				return true
+			}
+		}
+	}
+
+	for url, current := range currentRowsByURL {
+		if _, ok := incomingRowsByURL[url]; !ok {
+			if !isDraftRow(current) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func mapRowsByURL(rows []table.Row) map[string]table.Row {
+	rowsByURL := make(map[string]table.Row, len(rows))
+	for _, row := range rows {
+		if len(row) <= urlCol {
+			continue
+		}
+		rowsByURL[row[urlCol]] = row
+	}
+	return rowsByURL
+}
+
+func isDraftRow(row table.Row) bool {
+	if len(row) <= draftCol {
+		return false
+	}
+	return row[draftCol] == "true"
+}
+
 func renderTable(prs []*github.PullRequest) {
 	columns := []table.Column{
 		{Title: "URL", Width: 0},
@@ -108,6 +155,7 @@ func renderTable(prs []*github.PullRequest) {
 		{Title: "Title", Width: 50},
 		{Title: "Created by", Width: 20},
 		{Title: "Status", Width: 20},
+		{Title: "Draft", Width: 8},
 		{Title: "Created At", Width: 20},
 	}
 

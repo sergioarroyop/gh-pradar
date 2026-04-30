@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"embed"
+	"fmt"
 	"sync"
 	"time"
 
@@ -26,7 +27,11 @@ var (
 
 func initAudio() error {
 	initOnce.Do(func() {
-		file, _ := notifySounds.ReadFile("sounds/" + config.Sound + ".wav")
+		file, err := notifySounds.ReadFile("sounds/" + config.Sound + ".wav")
+		if err != nil {
+			initErr = fmt.Errorf("failed to load sound file %q: %w", config.Sound+".wav", err)
+			return
+		}
 		streamer, fmt, err := wav.Decode(bytes.NewReader(file))
 		if err != nil {
 			initErr = err

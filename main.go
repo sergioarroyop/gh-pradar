@@ -6,22 +6,13 @@ import (
 	"github.com/google/go-github/v74/github"
 )
 
-const (
-	configPath = "/.config/gh-pradar/"
-	configFile = "config.json"
-)
-
-var (
-	config   appConfig
-	err      error
-	quitting bool = false
-)
+var config appConfig
 
 func main() {
 	enterAltScreen()
 
 	errLoadingConfig := startSpinner("Loading local config...", func() error {
-		err := loadConfig(configPath, configFile)
+		err := loadConfig()
 		if err != nil {
 			return err
 		}
@@ -46,9 +37,6 @@ func main() {
 
 	errCheckingConfig := startSpinner("Loading user data...", func() error {
 		_, err := checkPAT(config)
-		if err != nil {
-			return err
-		}
 		return err
 	})
 	if errCheckingConfig != nil {
@@ -57,6 +45,7 @@ func main() {
 
 	var prs []*github.PullRequest
 	errGettingPRs := startSpinner("Retrieving PR information...", func() error {
+		var err error
 		prs, err = getPRs(config.RepositoryList)
 		if err != nil {
 			fmt.Println(errorText("Error loading user details: "))
@@ -74,13 +63,7 @@ func main() {
 		return
 	}
 
-	enterAltScreen()
 	renderTable(prs)
-
-	if quitting {
-		print(warnText("Exiting module loading..."))
-		return
-	}
 }
 
 // Clear and position the output at the top

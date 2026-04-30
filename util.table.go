@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"time"
@@ -28,10 +29,14 @@ const (
 	footerText    = "📡 GH PRadar | From Madrid with 🧡"
 )
 
-func openURL(url string) tea.Cmd {
+func openURL(targetURL string) tea.Cmd {
 	return func() tea.Msg {
-		cmd := exec.Command("xdg-open", url)
-		err := cmd.Start()
+		parsed, err := url.Parse(targetURL)
+		if err != nil || parsed.Scheme != "https" {
+			return openURLErrorMsg{err: fmt.Errorf("invalid URL: %s", targetURL)}
+		}
+		cmd := exec.Command("xdg-open", targetURL)
+		err = cmd.Start()
 		return openURLErrorMsg{err}
 	}
 }
@@ -127,7 +132,10 @@ func fetchPRs() tea.Cmd {
 }
 
 func generateRows(prs []*github.PullRequest) []prTableRow {
-	loc, _ := time.LoadLocation("Europe/Madrid")
+	loc, err := time.LoadLocation("Europe/Madrid")
+	if err != nil {
+		loc = time.UTC
+	}
 	rows := []prTableRow{}
 
 	for _, v := range prs {

@@ -40,5 +40,5 @@ func hyperlinkText(link string, msg string) string {
 }
 
 func print(msg string) {
-	fmt.Printf("\n  " + msg + "\n\n")
+	fmt.Print("\n  " + msg + "\n\n")
 }
